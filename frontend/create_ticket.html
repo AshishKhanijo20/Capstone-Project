@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Ticket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <button onclick="window.location.href='main.html'" 
+                        class="text-blue-500 hover:text-blue-700">
+                    ← Back to Tickets
+                </button>
+                <h1 class="text-2xl font-bold text-gray-800">Create New Ticket</h1>
+                <div class="w-32"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Form -->
+    <div class="max-w-3xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow p-8">
+            <form id="ticketForm" onsubmit="createTicket(event)">
+                
+                <!-- Short Description -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Short Description *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="shortDescription"
+                        required
+                        placeholder="Brief summary of the issue"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                <!-- Long Description -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Detailed Description
+                    </label>
+                    <textarea 
+                        id="longDescription"
+                        rows="6"
+                        placeholder="Provide detailed information about the issue..."
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ></textarea>
+                </div>
+
+                <!-- Severity -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Severity *
+                    </label>
+                    <select 
+                        id="severity"
+                        required
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+
+                <!-- Opened By -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Opened By (User ID) *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="openedById"
+                        required
+                        placeholder="e.g., user123"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                <!-- Assigned To -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Assign To (User ID - Optional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="assignedToId"
+                        placeholder="e.g., admin456"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                <!-- Configuration Item -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Configuration Item (Optional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="configItem"
+                        placeholder="e.g., Server-01, Laptop-ABC"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-4">
+                    <button 
+                        type="submit"
+                        class="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 font-medium"
+                    >
+                        Create Ticket
+                    </button>
+                    <button 
+                        type="button"
+                        onclick="window.location.href='index.html'"
+                        class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-medium"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="hidden mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                <p class="font-medium">Ticket created successfully!</p>
+                <p class="text-sm mt-1">Redirecting to ticket details...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <p class="font-medium">Error creating ticket</p>
+                <p class="text-sm mt-1" id="errorText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        async function createTicket(event) {
+            event.preventDefault();
+            
+            // Hide previous messages
+            document.getElementById('successMessage').classList.add('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+            
+            // Get form values
+            const ticketData = {
+                short_description: document.getElementById('shortDescription').value.trim(),
+                long_description: document.getElementById('longDescription').value.trim() || null,
+                severity: document.getElementById('severity').value,
+                opened_by_id: document.getElementById('openedById').value.trim(),
+                assigned_to_id: document.getElementById('assignedToId').value.trim() || null,
+                config_item: document.getElementById('configItem').value.trim() || null,
+                status: "Open"
+            };
+            
+            // Disable submit button
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating...';
+            
+            try {
+                const response = await fetch(`${API_URL}/tickets`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(ticketData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const createdTicket = await response.json();
+                
+                // Show success message
+                document.getElementById('successMessage').classList.remove('hidden');
+                
+                // Redirect to ticket detail page after 2 seconds
+                setTimeout(() => {
+                    window.location.href = `ticket-detail.html?id=${createdTicket.ticket_id}`;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error creating ticket:', error);
+                
+                // Show error message
+                document.getElementById('errorText').textContent = error.message;
+                document.getElementById('errorMessage').classList.remove('hidden');
+                
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = 'Create Ticket';
+            }
+        }
+    </script>
+</body>
+</html>

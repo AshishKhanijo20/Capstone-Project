@@ -1,0 +1,49 @@
+# =========================
+# Core LLM + RAG stack
+# =========================
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+langgraph>=0.1.0
+
+# =========================
+# Vector Databases
+# =========================
+faiss-cpu>=1.7.4
+pinecone-client>=3.0.0
+
+# =========================
+# Database + Checkpointing
+# =========================
+psycopg2-binary>=2.9.9
+
+# =========================
+# Migrations
+# =========================
+alembic>=1.13.1
+SQLAlchemy>=2.0.0
+
+# =========================
+# Search & HTTP
+# =========================
+duckduckgo-search>=4.1.0
+requests>=2.31.0
+
+# =========================
+# Environment variables
+# =========================
+python-dotenv>=1.0.0
+
+# =========================
+# UI
+# =========================
+streamlit>=1.32.0
+
+
+
+fastapi
+uvicorn
+psycopg
+langchain-chroma
+sqlmodel
