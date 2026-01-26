@@ -38,6 +38,7 @@ class Ticket(SQLModel, table= True):
     raised_on: datetime = Field(default_factory = datetime.utcnow)
     short_description : str
     long_description : Optional[str] = None
+    resolution_notes : Optional[str] = None
     config_item : Optional[str] = None
     chat_vector: Optional[dict] = Field(default = None,sa_column = Column(JSON))
     status : str = "Open"

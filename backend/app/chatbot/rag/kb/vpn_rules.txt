@@ -1,0 +1,8 @@
+VPN_BLUE_LIGHT_RULE
+
+If the VPN blue light does not turn on, the most common root cause
+is a missing or corrupted Cisco AnyConnect driver.
+
+Resolution:
+Reinstall Cisco AnyConnect driver version 4.10.02086
+and restart the system.

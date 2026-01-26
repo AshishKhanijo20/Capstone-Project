@@ -1,6 +1,6 @@
 from app.models.ticket import Ticket, generate_ticket_id
 import uuid
-import datetime
+from datetime import datetime
 from sqlmodel import Session , select
 from typing import Optional, List
 from app.schemas.tickets import TicketCreate, TicketUpdate

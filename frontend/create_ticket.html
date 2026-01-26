@@ -73,26 +73,12 @@
                 <!-- Opened By -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Opened By (User ID) *
+                        Opened By (User ID - Optional)
                     </label>
                     <input 
                         type="text" 
                         id="openedById"
-                        required
                         placeholder="e.g., user123"
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-
-                <!-- Assigned To -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Assign To (User ID - Optional)
-                    </label>
-                    <input 
-                        type="text" 
-                        id="assignedToId"
-                        placeholder="e.g., admin456"
                         class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
@@ -153,14 +139,14 @@
             document.getElementById('errorMessage').classList.add('hidden');
             
             // Get form values
+            const openedById = document.getElementById('openedById').value.trim();
+            const configItem = document.getElementById('configItem').value.trim() || null;
+            
             const ticketData = {
                 short_description: document.getElementById('shortDescription').value.trim(),
-                long_description: document.getElementById('longDescription').value.trim() || null,
+                long_description: document.getElementById('longDescription').value.trim() || "",
                 severity: document.getElementById('severity').value,
-                opened_by_id: document.getElementById('openedById').value.trim(),
-                assigned_to_id: document.getElementById('assignedToId').value.trim() || null,
-                config_item: document.getElementById('configItem').value.trim() || null,
-                status: "Open"
+                config_item: configItem
             };
             
             // Disable submit button
@@ -169,7 +155,13 @@
             submitButton.textContent = 'Creating...';
             
             try {
-                const response = await fetch(`${API_URL}/tickets`, {
+                // Build URL with query parameter for opened_by_id (if provided)
+                let url = `${API_URL}/tickets/`;
+                if (openedById) {
+                    url += `?opened_by_id=${encodeURIComponent(openedById)}`;
+                }
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -178,7 +170,8 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
                 }
                 
                 const createdTicket = await response.json();
@@ -188,7 +181,7 @@
                 
                 // Redirect to ticket detail page after 2 seconds
                 setTimeout(() => {
-                    window.location.href = `ticket-detail.html?id=${createdTicket.ticket_id}`;
+                    window.location.href = `ticket.html?id=${createdTicket.ticket_id}`;
                 }, 2000);
                 
             } catch (error) {

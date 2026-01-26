@@ -15,10 +15,10 @@ class TicketUpdate(BaseModel):
     short_description: Optional[str] = None
     long_description: Optional[str] = None
     severity: Optional[str] = None
+    resolution_notes: Optional[str] = None
     category: Optional[str] = None
     status: Optional[str] = None
     assigned_to_id: Optional[str] = None
-    resolution_notes: Optional[str] = None
 
 class TicketResponse(BaseModel):
     ticket_id: str
@@ -26,6 +26,7 @@ class TicketResponse(BaseModel):
     long_description: Optional[str]
     severity: str
     #ategory: Optional[str]
+    resolution_notes: Optional[str]
     status: str
     raised_on: datetime
     updated_at: datetime

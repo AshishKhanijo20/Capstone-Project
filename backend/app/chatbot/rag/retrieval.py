@@ -34,7 +34,7 @@ def retrive_context(
     )
 
     if not docs:
-        return "No relevant documents found."
+        return None
 
     return format_docs(docs)
 
