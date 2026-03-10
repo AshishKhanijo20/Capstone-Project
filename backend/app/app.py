@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.session import init_db
-from app.routers import tickets, ticket_chat
+from app.routers import tickets, ticket_chat, ticket_actions, feedback
 from dotenv import load_dotenv
 import os
 
@@ -35,6 +35,8 @@ def root():
 # Include routers
 app.include_router(tickets.router)
 app.include_router(ticket_chat.router)
+app.include_router(ticket_actions.router)
+app.include_router(feedback.router)
 #app.include_router(chat.router)
 #app.include_router(threads.router)
 

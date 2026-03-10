@@ -9,24 +9,47 @@ from app.chatbot.rag.vectorstore import load_vector_db
 def format_docs(docs: List[Document]) -> str:
     return "\n\n".join(doc.page_content for doc in docs)
 
+
+def infer_doc_type(query: str) -> str:
+    incident_keywords = [
+        "error", "failed", "stuck", "status", "heartbeat",
+        "reprocess", "not working", "issue", "investigate"
+    ]
+
+    q = query.lower()
+    if any(word in q for word in incident_keywords):
+        return "incident"
+
+    return "foundation"
+
 def retrive_context(
         query: str,
         ticket_id: Optional[str] = None,
         k: int = 4
 ) -> str:
     vector_db = load_vector_db()
+    doc_type = infer_doc_type(query)
+
     if ticket_id:
         filters = {
-            "$or" : [
-                {"memory_scope" : "temporary"},
-                {"ticket_id": ticket_id}
-
-            ]
-        }
+        "$and": [
+            {
+                "$or": [
+                    {"memory_scope": "temporary"},
+                    {"ticket_id": ticket_id}
+                ]
+            },
+            {"doc_type": doc_type}
+        ]
+    }
     else:
-        filters = {"memory_scope" : "permanent"}
-
-
+        filters = {
+        "$and": [
+            {"memory_scope": "permanent"},
+            {"doc_type": doc_type}
+        ]
+    }
+        
     docs = vector_db.similarity_search(
         query=query,
         k=k,

@@ -30,11 +30,22 @@ def load_document(file_path: str) -> List[Document]:
 
     docs = loader.load()
 
+    # ✅ infer doc_type from folder
+    doc_type = None
+    parts_lower = [part.lower() for part in path.parts]
+
+    if "incidents" in parts_lower:
+        doc_type = "incident"
+    elif "foundation" in parts_lower:
+        doc_type = "foundation"
+
     for doc in docs:
         doc.metadata.update({
             "source": path.name,
             "path": str(path),
             "file_type": ext,
+            "doc_type": doc_type,
+            "memory_scope": "permanent"
         })
 
     return docs

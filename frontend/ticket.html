@@ -89,6 +89,9 @@
         // Get ticket ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         currentTicketId = urlParams.get('id');
+        let lastUserMessage = "";
+        let lastAiResponse = "";
+        let currentSentiment = "neutral";
 
         // Load ticket details and initialize chat
         document.addEventListener('DOMContentLoaded', async () => {
@@ -109,7 +112,7 @@
         
 
         async function loadTicketDetails() {
-    try {
+       try {
         const response = await fetch(`${API_URL}/tickets/${currentTicketId}`);
         const ticket = await response.json();
         
@@ -249,6 +252,9 @@
     const message = input.value.trim();
     if (!message) return;
 
+    lastUserMessage = message; // Store the user's words
+    
+
     input.disabled = true;
     document.getElementById('sendButton').disabled = true;
 
@@ -268,7 +274,15 @@
         );
 
         const data = await response.json();
+        lastAiResponse = data.message; // Store the AI's response
+        console.log("ML Sentiment Result:", data.sentiment);
+        currentSentiment = data.sentiment;
         addMessageToChat(data.message, 'assistant');
+        if (currentSentiment === 'negative') {
+            setTimeout(() => {
+                addMessageToChat("I'm sorry you're feeling disappointed. How can I improve?", 'assistant', true);
+            }, 1000);
+        }
     } catch (error) {
         console.error(error);
         addMessageToChat('Error: Could not send message', 'error');
@@ -303,32 +317,122 @@
     }
 }
 
-        function addMessageToChat(content, role) {
-            const chatContainer = document.getElementById('chatMessages');
+       function addMessageToChat(content, role, isFeedback = false) {
+    const chatContainer = document.getElementById('chatMessages');
 
-            // Remove "start conversation" message if it exists
-            if (chatContainer.querySelector('.text-center')) {
-                chatContainer.innerHTML = '';
-            }
+    if (chatContainer.querySelector('.text-center')) {
+        chatContainer.innerHTML = '';
+    }
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
 
-            const colors = {
-                user: 'bg-blue-500 text-white',
-                assistant: 'bg-gray-200 text-gray-800',
-                error: 'bg-red-100 text-red-800'
-            };
+    const colors = {
+        user: 'bg-blue-500 text-white',
+        assistant: 'bg-gray-200 text-gray-800',
+        error: 'bg-red-100 text-red-800'
+    };
 
-            messageDiv.innerHTML = `
- <div class="max-w-[80%] px-4 py-2 rounded-lg ${colors[role]}">
- <p class="text-sm whitespace-pre-wrap">${content}</p>
- </div>
- `;
+    // --- LOGIC FOR TICKET SUGGESTION ---
+    const suggestionMatch = content.match(/TICKET_UPDATE_SUGGESTION:\s*({[\s\S]*?})/);
+    let htmlContent = "";
 
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (suggestionMatch && role === 'assistant') {
+        try {
+            const suggestion = JSON.parse(suggestionMatch[1]);
+            const cleanText = content.replace(/TICKET_UPDATE_SUGGESTION:[\s\S]*?}/, '').trim();
+            const escapedSummary = suggestion.resolution_summary.replace(/"/g, '&quot;');
+            
+            htmlContent = `
+                <p class="text-sm whitespace-pre-wrap">${cleanText || "Please confirm the ticket update:"}</p>
+                <div class="mt-3 bg-white p-3 rounded border border-gray-300">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Resolution Notes:</label>
+                    <textarea id="resolutionNotesInput_${suggestion.ticket_id}" class="w-full p-2 text-xs border rounded text-gray-800" rows="4">${escapedSummary}</textarea>
+                </div>
+                <div class="mt-3 flex gap-2">
+                    <button onclick="confirmTicketUpdateWithNotes('${suggestion.ticket_id}', '${suggestion.proposed_status}')" class="bg-green-600 text-white px-4 py-2 rounded text-sm">✓ Confirm</button>
+                    <button onclick="rejectTicketUpdate()" class="bg-gray-600 text-white px-4 py-2 rounded text-sm">✗ Not Yet</button>
+                </div>`;
+        } catch (e) {
+            htmlContent = `<p class="text-sm whitespace-pre-wrap">${content}</p>`;
         }
+    } else {
+        // --- LOGIC FOR REGULAR MESSAGES ---
+        htmlContent = `<p class="text-sm whitespace-pre-wrap">${content}</p>`;
+    }
+
+    // --- ADD FEEDBACK STARS IF TRIGGERED ---
+    if (isFeedback) {
+    htmlContent += `
+        <div class="mt-3 flex flex-col items-center bg-white/50 rounded p-2">
+            <span class="text-xs font-bold text-gray-500 uppercase mb-1">Rate this response</span>
+            <div class="flex gap-2 text-xl">
+                <button onclick="submitFeedback(1, event)" class="grayscale hover:grayscale-0 transition">😠</button>
+                <button onclick="submitFeedback(2, event)" class="grayscale hover:grayscale-0 transition">🙁</button>
+                <button onclick="submitFeedback(3, event)" class="grayscale hover:grayscale-0 transition">😐</button>
+                <button onclick="submitFeedback(4, event)" class="grayscale hover:grayscale-0 transition">🙂</button>
+                <button onclick="submitFeedback(5, event)" class="grayscale hover:grayscale-0 transition">🤩</button>
+            </div>
+        </div>`;
+}
+
+    messageDiv.innerHTML = `<div class="max-w-[80%] px-4 py-2 rounded-lg ${colors[role]}">${htmlContent}</div>`;
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+async function confirmTicketUpdateWithNotes(ticketId, newStatus) {
+    const notesTextarea = document.getElementById(`resolutionNotesInput_${ticketId}`);
+    const notes = notesTextarea.value.trim();
+    
+    if (!notes) {
+        alert('Please provide resolution notes before confirming.');
+        return;
+    }
+    
+    // Disable the textarea and buttons during update
+    notesTextarea.disabled = true;
+    const buttons = document.querySelectorAll(`button[onclick*="${ticketId}"]`);
+    buttons.forEach(btn => btn.disabled = true);
+    
+    try {
+        const response = await fetch(`${API_URL}/tickets/${ticketId}/confirm-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                new_status: newStatus,
+                resolution_notes: notes
+            })
+        });
+
+        if (response.ok) {
+            addMessageToChat(`✅ Ticket status updated to "${newStatus}" successfully!`, 'assistant');
+            
+            // Reload ticket details to show updated info
+            await loadTicketDetails();
+            setTimeout(() => {
+            addMessageToChat("How would you rate this resolution experience?", 'assistant', true);
+            }, 3000);
+        } else {
+            const errorData = await response.json();
+            addMessageToChat(`❌ Failed to update ticket: ${errorData.detail || 'Unknown error'}`, 'error');
+            
+            // Re-enable on error
+            notesTextarea.disabled = false;
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    } catch (error) {
+        console.error('Error confirming update:', error);
+        addMessageToChat('❌ Error updating ticket. Please try again.', 'error');
+        
+        // Re-enable on error
+        notesTextarea.disabled = false;
+        buttons.forEach(btn => btn.disabled = false);
+    }
+}
+
+function rejectTicketUpdate() {
+    addMessageToChat('Okay, I won\'t update the ticket status. Let me know if you need anything else!', 'assistant');
+}
 
         function getSeverityColor(severity) {
             const colors = {
@@ -339,6 +443,40 @@
             };
             return colors[severity] || 'bg-gray-100 text-gray-800';
         }
+
+      
+async function submitFeedback(rating) {
+    // 1. Get the container immediately
+    const starContainer = event.target.closest('.flex-col');
+    
+    // 2. Hide it IMMEDIATELY (before the fetch) 
+    // This stops the user from clicking twice!
+    if (starContainer) {
+        starContainer.remove(); 
+    }
+
+    const feedbackData = {
+        ticket_id: currentTicketId,
+        rating: rating,
+        user_query: lastUserMessage,
+        ai_response: lastAiResponse,
+        sentiment: currentSentiment
+    };
+
+    try {
+        // 3. Now do the slow network work
+        await fetch(`${API_URL}/feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(feedbackData)
+        });
+        
+        // 4. Show the thank you message once
+        addMessageToChat(`Thank you for your ${rating}-star feedback!`, 'assistant');
+    } catch (e) {
+        console.error("Feedback failed", e);
+    }
+}
     </script>
     
 

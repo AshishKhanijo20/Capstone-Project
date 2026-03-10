@@ -47,3 +47,4 @@ uvicorn
 psycopg
 langchain-chroma
 sqlmodel
+nltk

@@ -43,7 +43,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 *~
-
+.VSCodeCounter/
 # Test / coverage
 htmlcov/
 .tox/

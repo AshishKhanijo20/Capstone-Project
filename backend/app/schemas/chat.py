@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 
@@ -9,6 +9,8 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     message: str
+    sentiment: str  # "positive" or "negative"
+    thread_id: Optional[str] = None # Add this back
 
 
 class ChatMessageResponse(BaseModel):

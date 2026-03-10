@@ -10,6 +10,7 @@ from app.utils.message_utils import (
     load_conversation,
     save_messages,
 )
+from app.utils.sentiment import get_sentiment_score
 
 router = APIRouter(prefix="/tickets", tags=["Ticket Chat"])
 
@@ -20,7 +21,7 @@ def chat_with_ticket(
     request: ChatRequest,
     session: Session = Depends(get_session),
 ):
-    # 1️⃣ Load ticket
+    # Load ticket
     ticket = session.get(Ticket, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -31,6 +32,7 @@ def chat_with_ticket(
     # 3️⃣ Append user message
     user_msg = HumanMessage(content=request.message)
     messages.append(user_msg)
+    user_sentiment = get_sentiment_score(request.message)
     save_messages(session, [user_msg], ticket)
 
     # 4️⃣ Run LangGraph (STATELESS)
@@ -57,7 +59,8 @@ def chat_with_ticket(
     ai_message = new_messages[0].content
     return ChatResponse(
         message=ai_message,
-        thread_id=ticket.thread_id
+        thread_id=ticket.thread_id,
+        sentiment=user_sentiment
     )
 
 

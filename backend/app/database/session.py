@@ -21,7 +21,8 @@ def init_db():
     from app.models.ticket import Ticket
     from app.models.user import User
     from app.models.ChatMessage import ChatMessage
-   
+    from app.models.feedback import Feedback
+
     SQLModel.metadata.create_all(engine)
 
 def get_session() -> Generator[Session, None, None]:

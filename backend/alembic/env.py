@@ -14,6 +14,7 @@ load_dotenv()
 from app.models.ticket import Ticket
 from app.models.user import User
 from app.models.ChatMessage import ChatMessage
+from app.models.feedback import Feedback
 from app.database.session import DATABASE_URL
 from app.database.session import engine
 
